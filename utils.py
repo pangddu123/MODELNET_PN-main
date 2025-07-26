@@ -1,6 +1,11 @@
+import csv
+import os
+import re
+
 import requests
 import json
 import numpy as np
+from datetime import datetime
 
     
 def softmax_probability(data):
@@ -101,3 +106,96 @@ def validate_args(args):
     
     return True, "参数验证通过"
 
+
+
+def extract_option(text):
+    """
+    使用正则表达式从生成的文本中提取选项（A、B、C或D）
+    """
+    # 将文本转换为大写以进行不区分大小写的匹配
+    text_upper = text.upper()
+
+    # 正则表达式模式列表（按优先级排序）
+    patterns = [
+        # 匹配括号中的选项，如 (A) 或 [B]
+        r'[\(\[](A|B|C|D)[\)\]]',
+
+        # 匹配冒号后的选项，如 "答案：A" 或 "正确答案: B"
+        r'(?:答案|正确答案|正确选项|选项|选择|答案选项)[：:]\s*(A|B|C|D)',
+
+        # 匹配"是"后的选项，如 "答案是A" 或 "正确答案是 B"
+        r'(?:答案|正确答案|正确选项|选项|选择|答案选项)是\s*(A|B|C|D)',
+
+        # 匹配单独的大写字母选项（确保前后没有其他字母）
+        r'\b(A|B|C|D)\b',
+
+        # 匹配任何位置的大写字母选项（最后的兜底选项）
+        r'(A|B|C|D)'
+    ]
+
+    # 按优先级尝试匹配模式
+    for pattern in patterns:
+        match = re.search(pattern, text_upper)
+        if match:
+            return match.group(1)
+
+    # 如果所有方法都失败，返回随机选项
+    return 'E'
+
+
+def save_subject_logs( subject, log_data_list, result_dir):
+    """保存整个学科的日志到JSON和CSV文件"""
+    # 创建时间戳，确保同一学科的不同运行使用相同的时间戳
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+    # 保存JSON
+    json_path = os.path.join(result_dir, f"{subject}_logs_{timestamp}.json")
+    with open(json_path, 'w', encoding='utf-8') as f:
+        json.dump(log_data_list, f, indent=2, ensure_ascii=False)
+
+    # 保存CSV
+    csv_path = os.path.join(result_dir, f"{subject}_logs_{timestamp}.csv")
+    with open(csv_path, mode='w', encoding='utf-8', newline='') as f:
+        writer = csv.writer(f)
+        # 写入表头
+        writer.writerow([
+            "question",
+            "step", "model_name", "model_arch", "selected_word",
+            "token", "prob", "logprob", "token_rank",
+            "is_selected", "response_time_ms", "current_ans",
+            "c_logit", "c_rank", "c_total"
+        ])
+
+        # 写入每个问题的数据
+        for log_data in log_data_list:
+            write_log_entry_to_csv(writer, log_data)
+
+def write_log_entry_to_csv(writer, log_data):
+    """将单个问题的日志数据写入CSV"""
+    question = log_data.get("question", "")
+    for step in log_data['steps']:
+        selected = step["selected_word"]
+        for model in step["return_args"]:
+            # 获取MACS分数
+            c_logit = model.get("c_logit", 0.0)
+            c_rank = model.get("c_rank", 0.0)
+            c_total = model.get("c_total", 0.0)
+
+            for token_info in model["topk_token"]:
+                is_selected = int(token_info["token"] == selected)
+                writer.writerow([
+                    question,
+                    step["step"],
+                    model["model_name"],
+                    model["model_arch"],
+                    selected,
+                    token_info["token"],
+                    round(token_info["prob"], 6),
+                    round(token_info["logprob"], 6),
+                    token_info["token_rank"],
+                    is_selected,
+                    model["response_time_ms"],
+                    step["current_ans"],
+                    round(c_logit, 6),  # logit投票支持度
+                    round(c_rank, 6),  # Top-K命中情况
+                    round(c_total, 6) ])
