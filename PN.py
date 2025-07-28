@@ -76,6 +76,7 @@ class MultiModelHandler:
             for future in as_completed(all_task):
 
                 result = future.result()
+                print(result)
                 if args['return_dict_in_generate'] is not True:
                     topk_token = sorted(result[1]['sample_result'], key=lambda x: x[1], reverse=True)[:args['top_k']]
                 elif args['handel_next_token']:
@@ -252,7 +253,7 @@ if __name__ == '__main__':
     handler = MultiModelHandler()
 
     # 选数据库中第i号模型
-    model_choice = [2]
+    model_choice = [6]
 
     question = "你知道智谱团队吗？"
     args = {
@@ -260,7 +261,7 @@ if __name__ == '__main__':
         'top_k': 5,
         'prefix': False,
         'soft': True,
-        'log-info': True,
+        'log-info': False,
         'do_sample': True,
         'max_new_tokens':10,
         'temperature': 0.8,

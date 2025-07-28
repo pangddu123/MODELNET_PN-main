@@ -185,3 +185,4 @@ class MACSManager:
             model_df = pd.DataFrame(model_data)
             excel_file = os.path.join(result_dir, "all_problems_macs.xlsx")
             model_df.to_excel(excel_file, index=False)
+

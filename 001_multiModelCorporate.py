@@ -11,13 +11,10 @@ import pandas as pd
 from tqdm import tqdm
 
 from MACSManager import MACSManager
-from test import CEvalTester
+from test2 import CEvalTester, BoolQTester, SimpleMathTester
 from utils import extract_option, write_log_entry_to_csv, save_subject_logs
 
-
-
-
-
+# /mnt/Data/xao/modelnet/load_model/output
 
 class MultiModelHandler:
     """多模型协作处理类"""
@@ -26,10 +23,10 @@ class MultiModelHandler:
                  enable_removal=False, removal_threshold=0.3, window_size=5,
                  consecutive_windows=3, max_removals=2):
         self.file_path = "./model_info.json"
-        self.executor = ThreadPoolExecutor(max_workers=max_workers)
         self.save_dir = "./out/saved_logs"
         os.makedirs(self.save_dir, exist_ok=True)
 
+        self.executor = ThreadPoolExecutor(max_workers=max_workers)
         # 初始化MACS管理器
         self.macs_manager = MACSManager(
             enable_removal=enable_removal,
@@ -41,6 +38,10 @@ class MultiModelHandler:
 
         # 初始化CEval测试器
         self.ceval_tester = CEvalTester(self)
+        self.boolq_tester = BoolQTester(self)
+        self.mmlu_tester = CEvalTester(self,ceval_val_path="./dataset/MMLU_ceval/data/val",
+                 ceval_results_dir="./out/mmlu_results")
+        self.simpleMath_tester = SimpleMathTester(self)
 
     def generate_response(self, model_choice, question, args, problem_id=None, subject=None):
         import utils
@@ -183,10 +184,6 @@ class MultiModelHandler:
 
         return ans, log_data, current_problem_macs
 
-    def evaluate_ceval(self, model_choice, args, subjects=None, max_samples=None):
-        """委托给CEvalTester执行评估"""
-        return self.ceval_tester.evaluate(model_choice, args, subjects, max_samples)
-
     def call_app(self, text, info, extra_args):
         url = f"{info['model_url']}/predict"
         headers = {'Content-Type': 'application/json'}
@@ -248,20 +245,42 @@ class MultiModelHandler:
         highest = [w for w, s in scores.items() if s == max_score]
         return random.choice(highest), max_score
 
+
+    def evaluate_ceval(self, model_choice, args, subjects=None, max_samples=None):
+        """委托给CEvalTester执行评估"""
+        return self.ceval_tester.evaluate(model_choice, args, subjects, max_samples)
+
+    def evaluate_mmlu(self, model_choice, args, subjects=None, max_samples=None):
+        """委托给CEvalTester执行评估"""
+        return self.mmlu_tester.evaluate(model_choice, args, subjects, max_samples)
+
+    def evaluate_boolq(self, model_choice, args, max_samples=1000):
+        """委托给CEvalTester执行评估"""
+        return self.boolq_tester.evaluate(model_choice, args, max_samples)
+    def evaluate_simpleMath(self, model_choice, args, max_samples=1000):
+        """委托给CEvalTester执行评估"""
+        return self.simpleMath_tester.evaluate(model_choice, args, max_samples)
+
 if __name__ == '__main__':
     # 实例化处理器（启用剔除机制）
     handler = MultiModelHandler(
-        enable_removal=True,
+        enable_removal=False,
         removal_threshold=0.3,  # MACS阈值
         window_size=5,  # 滑动窗口大小
         consecutive_windows=3,  # 连续低于阈值的窗口数
         max_removals=3  # 最多剔除模型的个数
     )
-
+#6、8、
     # 模型组合列表
-    model_choice_list = [[0, 2, 3, 4]]
+    # model_choice_list = [ [2, 3], [2, 6], [2, 8], [3, 6]]
+    model_choice_list = [ [1]]
+    # model_choice_list = [ [2, 6, 8], [3, 6, 8], [2, 3, 6, 8]]
+
+
 
     number_problems = 20
+    number_subjects = 5
+
     for model_choice in model_choice_list:
         args = {
             'max_len': 500,
@@ -280,22 +299,21 @@ if __name__ == '__main__':
             'handel_next_token': True,
             'mode': 0
         }
-        subjects_to_evaluate_list = []
-        # CEval评估（启用剔除机制）
-        subjects_to_evaluate = ['high_school_biology_val']
-        # subjects_to_evaluate = ["computer_network_val", "operating_system_val",
-        #                         "computer_architecture_val", 'high_school_biology_val',
-        #                         'high_school_chemistry_val', 'high_school_chinese_val',
-        #                         'high_school_geography_val', 'high_school_history_val',
-        #                         'high_school_mathematics_val', 'high_school_physics_val',
-        #                         'high_school_politics_val']
-        # subjects_to_evaluate = ["computer_network_val", "operating_system_val",
-        #                         "computer_architecture_val",'high_school_biology_val'
-        #                        ]
 
-        overall_acc = handler.evaluate_ceval(
-            model_choice,
-            args,
-            subjects=subjects_to_evaluate,
-            max_samples=number_problems
-        )
+
+
+
+        ceval_folder_path = "./dataset/MMLU_ceval/data/val"  # 替换为实际路径
+        ceval_subjects_to_evaluate = [f for f in os.listdir(ceval_folder_path)
+                     if f.endswith(".csv") and os.path.isfile(os.path.join(ceval_folder_path, f))]
+        ceval_subjects_to_evaluate = ceval_subjects_to_evaluate[:number_subjects]
+
+        MMLU_folder_path = "./dataset/MMLU_ceval/data/val"  # 替换为实际路径
+        MMLU_subjects_to_evaluate = [f for f in os.listdir(MMLU_folder_path)
+                     if f.endswith(".csv") and os.path.isfile(os.path.join(MMLU_folder_path, f))]
+        MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
+
+
+
+        overall_acc=handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems)
+
