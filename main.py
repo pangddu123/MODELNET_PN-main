@@ -220,6 +220,34 @@ class MultiModelHandler:
                 result['prediction_values'].append([token, prob, logprob])
             return info["model_name"], result, elapsed_ms, model_eos_token
 
+        if info['model_arch'] == "vllm":
+            response = requests.post(f"{info['model_url']}/predict",
+                                     json={"text": text, "args": extra_args})
+            if response.status_code == 200:
+                result = response.json()
+                # 转换vLLM响应格式
+                token_info = result['response'][0]
+                sample_result = [
+                    [token_info['token'], token_info['logprob']]
+                ]
+                prediction_values = []
+                for lp in token_info['top_logprobs']:
+                    prob = math.exp(lp['logprob'])
+                    prediction_values.append([
+                        lp['token'], prob, lp['logprob']
+                    ])
+
+                return {
+                    "model_name": info["model_name"],
+                    "result": {
+                        "sample_result": sample_result,
+                        "prediction_values": prediction_values,
+                        "args": result.get("args", {})
+                    },
+                    "response_time": elapsed_ms,
+                    "eos_token": info.get('EOS', '')
+                }
+
         if response.status_code == 200:
             result = response.json()
             return info["model_name"], result, elapsed_ms, model_eos_token
@@ -279,13 +307,13 @@ if __name__ == '__main__':
 #6、8、
     # 模型组合列表
     # model_choice_list = [ [2, 3], [2, 6], [2, 8], [3, 6]]
-    model_choice_list = [ [1]]
+    model_choice_list = [ [0]]
     # model_choice_list = [ [2, 6, 8], [3, 6, 8], [2, 3, 6, 8]]
 
 
 
-    number_problems = 20
-    number_subjects = 5
+    number_problems = 1
+    number_subjects = 1
 
     for model_choice in model_choice_list:
         args = {

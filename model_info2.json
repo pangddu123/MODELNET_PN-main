@@ -1,0 +1,109 @@
+[
+    {
+
+        "id": "a1b2c3d4",
+        "model_name": "Qwen1.5-7B-Chat",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5050",
+        "EOS": "<|im_end|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "e5f6g7h8",
+        "model_name": "Deepseek-LLM-7B-Chat",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5051",
+        "EOS": "<｜end▁of▁sentence｜>",
+        "model_type": "normal"
+    },
+    {
+        "id": "i9j0k1l2",
+        "model_name": "Qwen2.5-7B-Instruct",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5052",
+        "EOS": "",
+        "model_type": "normal"
+    },
+    {
+        "id": "m3n4o5p6",
+        "model_name": "GLM-4-9B-Chat",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5053",
+        "EOS": "<|endoftext|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "q7r8s9t0",
+        "model_name": "Meta-Llama-3.1-8B-Instruct",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5054",
+        "EOS": "<|eot_id|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "u1v2w3x4",
+        "model_name": "QwQ-32B-AWQ",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5055",
+        "EOS": "",
+        "model_type": "thinker"
+    },
+    {
+        "id": "y5z6a7b8",
+        "model_name": "InternLM2.5-7B-Chat",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5056",
+        "EOS": "</s>",
+        "model_type": "normal"
+    },
+    {
+        "id": "c9d0e1f2",
+        "model_name": "GLM-4-9B-0414",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5057",
+        "EOS": "<|user|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "g3h4i5j6",
+        "model_name": "Yi-1.5-9B-Chat",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5058",
+        "EOS": "<|im_end|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "k7l8m9n0",
+        "model_name": "Qwen2.5-14B-Instruct",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5059",
+        "EOS": "<|im_end|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "o1p2q3r4",
+        "model_name": "DeepSeek-R1-Distill-Qwen-7B",
+        "model_arch": "transformers",
+        "model_url": "http://10.154.22.10:5060",
+        "EOS": "<｜end▁of▁sentence｜>",
+        "model_type": "thinker"
+    },
+    {
+        "id": "s5t6u7v8",
+        "model_name": "glm-4-9b-chat.IQ3_M",
+        "model_arch": "llama",
+        "model_url": "http://192.168.137.49:8081",
+        "EOS": "<|user|>",
+        "model_type": "normal"
+    },
+    {
+        "id": "s5t3137v8",
+        "model_name": "Qwen3-1.7B-F16",
+        "model_arch": "llama",
+        "model_url": "http://192.168.8.166:8081",
+        "EOS": "",
+        "model_type": "normal"
+    },
+    { "id": "s5t3117v8", "model_name": "Qwen3-0.6B-BF16", "model_arch": "llama", "model_url": "http://192.168.8.222:8081", "EOS": "<|endoftext|>", "model_type": "normal" }
+
+]

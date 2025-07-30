@@ -9,7 +9,7 @@ from openai import OpenAI
 import pdb
 
 class MultiModelHandler:
-    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=10):
+    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=1):
         """
         初始化多模型处理器。
 
@@ -17,7 +17,7 @@ class MultiModelHandler:
         :param max_workers: 并发线程数
         """
         # 读取模型配置文件(***后续修正为数据库连接***)
-        self.file_path = "/mnt/Data/duxianghe/Code/MODELNET_PN-main/model_info.json"
+        self.file_path = "./model_info.json"
         
         self.executor = ThreadPoolExecutor(max_workers=max_workers)
 
@@ -78,13 +78,14 @@ class MultiModelHandler:
                 result = future.result()
                 print(result)
                 if args['return_dict_in_generate'] is not True:
-                    topk_token = sorted(result[1]['sample_result'], key=lambda x: x[1], reverse=True)[:args['top_k']]
+                    topk_token = sorted(result[1]['response']['sample_result'], key=lambda x: x[1], reverse=True)[:args['top_k']]
                 elif args['handel_next_token']:
-                    topk_token = sorted(result[1]['prediction_values'], key=lambda x: x[1], reverse=True)[:args['top_k']]
+                    topk_token = sorted(result[1]['response']['prediction_values'], key=lambda x: x[1], reverse=True)[:args['top_k']]
+
                 else:
-                    topk_token = sorted(result[1]['sample_result'], key=lambda x: x[1], reverse=True)[:args['top_k']]
+                    topk_token = sorted(result[1]['response']['sample_result'], key=lambda x: x[1], reverse=True)[:args['top_k']]
                 
-                return_args.append([result[0],result[1]['args']])
+                return_args.append([result[0],result[1]['response']['args']])
                 # 若为投票则权重结果选设置为1
                 if args['mode'] == 1:           
                     topk_token = [[word, 1] for word, _ in topk_token]
@@ -128,6 +129,8 @@ class MultiModelHandler:
         headers = {'Content-Type': 'application/json'}
         data = {'text': text, 'args': extra_args}
         response = requests.post(url, json=data, headers=headers)
+
+
 
         # 若非transformers架构，采用openai调用接口
         if info['model_arch'] != "transformers":
@@ -269,7 +272,7 @@ if __name__ == '__main__':
         # 'return_dict_in_generate':False,
         'output_scores': True,
         # 'output_scores': False,
-        'top_p': None,
+        'top_p': 1,
         'handel_next_token': True,
         'mode': 0
     }
