@@ -253,7 +253,7 @@ if __name__ == '__main__':
     handler = MultiModelHandler()
 
     # 选数据库中第i号模型
-    model_choice = [6]
+    model_choice = [1]
 
     question = "你知道智谱团队吗？"
     args = {

@@ -10,16 +10,16 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 from tqdm import tqdm
 
+import utils
 from MACSManager import MACSManager
-from test2 import CEvalTester, BoolQTester, SimpleMathTester
-from utils import extract_option, write_log_entry_to_csv, save_subject_logs
+from test import CEvalTester, BoolQTester, SimpleMathTester
 
 # /mnt/Data/xao/modelnet/load_model/output
 
 class MultiModelHandler:
     """多模型协作处理类"""
 
-    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=10,
+    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=3,
                  enable_removal=False, removal_threshold=0.3, window_size=5,
                  consecutive_windows=3, max_removals=2):
         self.file_path = "./model_info.json"
@@ -36,7 +36,13 @@ class MultiModelHandler:
             max_removals=max_removals
         )
 
-        # 初始化CEval测试器
+        # 生成过程监控参数
+        self.max_repetition_count = 5  # 最大允许重复次数
+        self.repetition_window = 3     # 重复检测窗口大小
+        self.max_meaningless_tokens = 10  # 最大无意义token数量
+
+
+        # 初始化测试器
         self.ceval_tester = CEvalTester(self)
         self.boolq_tester = BoolQTester(self)
         self.mmlu_tester = CEvalTester(self,ceval_val_path="./dataset/MMLU_ceval/data/val",
@@ -44,7 +50,7 @@ class MultiModelHandler:
         self.simpleMath_tester = SimpleMathTester(self)
 
     def generate_response(self, model_choice, question, args, problem_id=None, subject=None):
-        import utils
+
 
         val, info = utils.validate_args(args)
         if not val:
