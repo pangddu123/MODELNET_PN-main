@@ -4,17 +4,17 @@ from vllm import LLM, SamplingParams
 import os
 import math
 import uvicorn
-from typing import List, Dict, Any, Optional
+from typing import Dict, Any
 
 app = FastAPI()
-MODEL_PATH = "/root/autodl-tmp/qwen/Qwen2.5-7B-Instruct"  # HuggingFace模型ID
+MODEL_PATH = "/root/autodl-tmp/LLM/qwen/Qwen3-8B"  # 修改为实际模型路径
 
 # 环境变量配置
 PORT = int(os.getenv("PORT", 8000))
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen2.5-7B-Instruct")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen3-8B-Instruct")
 MODEL_ARCH = os.getenv("MODEL_ARCH", "transformers")
 EOS_TOKEN = os.getenv("EOS_TOKEN", "<|im_end|>")
-TEMPLATE_TYPE = os.getenv("TEMPLATE_TYPE", "qwen")
+TEMPLATE_TYPE = os.getenv("TEMPLATE_TYPE", "qwen3")  # 使用新模板类型
 
 # 初始化vLLM引擎
 llm = LLM(
@@ -24,7 +24,7 @@ llm = LLM(
     gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.9))
 )
 
-print(f"Loaded model: {MODEL_PATH}")
+print(f"Loaded Qwen3-8B model: {MODEL_PATH}")
 
 
 class PredictRequest(BaseModel):
@@ -52,24 +52,23 @@ async def predict(request: PredictRequest):
             top_k=args.get("top_k", 5),
             top_p=args.get("top_p", 1.0),
             max_tokens=1,
-            logprobs=args.get("top_k", 5),  # 返回top_k个logprobs
+            logprobs=args.get("top_k", 5),
             skip_special_tokens=False
         )
 
-        # 使用vLLM生成
         outputs = llm.generate([request.text], sampling_params)
         output = outputs[0]
-
-        # 处理第一个生成的token
         token_id = output.outputs[0].token_ids[0]
-        logprobs_dict = output.outputs[0].logprobs[0]  # 获取字典
+        logprobs_dict = output.outputs[0].logprobs[0]
 
-        # 从字典提取实际token的logprob
         token_logprob_obj = logprobs_dict[token_id]
         token_text = token_logprob_obj.decoded_token
         token_logprob = token_logprob_obj.logprob
 
-        # 按rank排序提取top logprobs
+        # 处理空token的特殊情况
+        if not token_text.strip():
+            token_text = EOS_TOKEN
+
         top_logprobs = []
         sorted_items = sorted(logprobs_dict.items(), key=lambda x: x[1].rank)
         for j, (tid, logprob_obj) in enumerate(sorted_items):
@@ -77,7 +76,7 @@ async def predict(request: PredictRequest):
                 break
             token_str = logprob_obj.decoded_token
             # 处理空字节情况
-            if not token_str.strip() and tid == token_id:
+            if not token_str.strip():
                 token_str = EOS_TOKEN
             top_logprobs.append({
                 "token": token_str,
@@ -85,23 +84,19 @@ async def predict(request: PredictRequest):
                 "prob": math.exp(logprob_obj.logprob)
             })
 
-        # 构建预测值列表 (token + 概率)
         prediction_values = []
         for item in top_logprobs:
             prediction_values.append([item["token"], item["prob"]])
 
-        # 构建样本结果 (token + logprob)
         sample_result = [[token_text, token_logprob]]
 
-        # 合并参数
         response_args = {
             "model_name": MODEL_NAME,
             "model_arch": MODEL_ARCH,
             "eos_token": EOS_TOKEN,
-            **request.args  # 包含所有前端传入的参数
+            **request.args
         }
 
-        # 构建符合前端要求的响应
         response_data = {
             "args": response_args,
             "error": None,
@@ -122,10 +117,20 @@ async def predict(request: PredictRequest):
 async def template(request: TemplateRequest):
     try:
         question = request.question
-        # 根据模型类型应用不同的模板
-        if TEMPLATE_TYPE == "llama-chat":
+
+        # Qwen3专用模板
+        if TEMPLATE_TYPE == "qwen3":
+            formatted_text = (
+                "<|im_start|>system\n"
+                "You are a helpful assistant.<|im_end|>\n"
+                "<|im_start|>user\n"
+                f"{question}<|im_end|>\n"
+                "<|im_start|>assistant\n"
+            )
+        # 其他模板保持不变
+        elif TEMPLATE_TYPE == "llama-chat":
             formatted_text = f"[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n{question} [/INST]"
-        elif TEMPLATE_TYPE == "qwen":
+        elif TEMPLATE_TYPE == "qwen":  # 兼容旧版Qwen
             formatted_text = (
                 "<|im_start|>system\n"
                 "You are a helpful assistant.<|im_end|>\n"
