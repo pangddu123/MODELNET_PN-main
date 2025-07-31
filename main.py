@@ -378,10 +378,10 @@ if __name__ == '__main__':
                      if f.endswith(".csv") and os.path.isfile(os.path.join(MMLU_folder_path, f))]
         # MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
 
-        overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems)
-        overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems)
-        overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems)
-        # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems)
+        # overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems)
+        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems)
+        # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems)
+        overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems)
         # 记录当前模型组合耗时
         combo_elapsed = time.time() - combo_start_time
         print(f"[组合日志] 评估完成! 耗时: {combo_elapsed:.2f}秒")
