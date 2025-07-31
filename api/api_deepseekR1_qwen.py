@@ -12,12 +12,12 @@ from typing import List, Dict, Any
 
 app = FastAPI()
 # MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
-MODEL_PATH = "/root/autodl-tmp/LLM/okwinds/GLM-4-9B-0414-Int8-W8A16"
+MODEL_PATH = "/root/autodl-tmp/LLM/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
 # 环境变量配置
-PORT = int(os.getenv("PORT", 8001))  # 使用不同端口避免冲突
-MODEL_NAME = "GLM-4"
+PORT = int(os.getenv("PORT", 8003))  # 使用不同端口避免冲突
+MODEL_NAME = "DeepseekR1-7B"
 MODEL_ARCH = "transformers"
-EOS_TOKEN = "<|endoftext|>"  # GLM-4的结束符
+EOS_TOKEN = "<｜end▁of▁sentence｜>"  # GLM-4的结束符
 TEMPLATE_TYPE = "glm4"
 MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 600))
 
@@ -25,14 +25,14 @@ MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 600))
 llm = LLM(
     model=MODEL_PATH,
     tokenizer=MODEL_PATH,
-    tensor_parallel_size=2,  # 单GPU运行
+    tensor_parallel_size=1,  # 单GPU运行
     trust_remote_code=True,  # GLM需要此参数
-    gpu_memory_utilization=1,
+    gpu_memory_utilization=0.9,
     max_model_len=MAX_MODEL_LEN,  # 限制最大序列长度
     dtype="bfloat16" if torch.cuda.is_bf16_supported() else "float16"
 )
 
-print(f"Loaded GLM-4 model on GPU {os.environ['CUDA_VISIBLE_DEVICES']}")
+# print(f"Loaded GLM-4 model on GPU {os.environ['CUDA_VISIBLE_DEVICES']}")
 print(f"Model path: {MODEL_PATH}")
 
 
