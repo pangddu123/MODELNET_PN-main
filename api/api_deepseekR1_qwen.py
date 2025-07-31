@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 
 # 指定使用GPU 1
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 app = FastAPI()
 # MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
 MODEL_PATH = "/root/autodl-tmp/LLM/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
@@ -18,7 +18,7 @@ PORT = int(os.getenv("PORT", 8003))  # 使用不同端口避免冲突
 MODEL_NAME = "DeepseekR1-7B"
 MODEL_ARCH = "transformers"
 EOS_TOKEN = "<｜end▁of▁sentence｜>"  # GLM-4的结束符
-TEMPLATE_TYPE = "glm4"
+TEMPLATE_TYPE = "deepseekr1"
 MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 600))
 
 # 初始化vLLM引擎
@@ -53,12 +53,16 @@ class NewPredictResponse(BaseModel):
 @app.post("/predict", response_model=NewPredictResponse)
 async def predict(request: PredictRequest):
     try:
+
         args = request.args
+        top_p = args.get("top_p")
+        if top_p is None:
+            top_p = 1.0
         sampling_params = SamplingParams(
             n=1,
             temperature=args.get("temperature", 0.7),
             top_k=args.get("top_k", 10),
-            top_p=args.get("top_p", 0.95),
+            top_p=top_p,
             max_tokens=1,
             logprobs=args.get("top_k", 10),
             skip_special_tokens=False
@@ -120,10 +124,10 @@ async def template(request: TemplateRequest):
     try:
         question = request.question
         # GLM-4专用模板
-        if TEMPLATE_TYPE == "glm4":
+        if TEMPLATE_TYPE == "deepseekr1":
             formatted_text = (
                 "<|system|>\n"
-                "You are an AI assistant developed by Zhipu AI.\n"
+                "You are an AI assistant\n"
                 "<|user|>\n"
                 f"{question}\n"
                 "<|assistant|>\n"

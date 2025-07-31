@@ -5,7 +5,7 @@ import os
 import math
 import uvicorn
 from typing import List, Dict, Any, Optional
-
+# os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 app = FastAPI()
 MODEL_PATH = "/root/autodl-tmp/LLM/qwen/Qwen2.5-7B-Instruct"  # HuggingFace模型ID
 
@@ -21,7 +21,7 @@ llm = LLM(
     model=MODEL_PATH,
     tokenizer=MODEL_PATH,
     tensor_parallel_size=int(os.getenv("TENSOR_PARALLEL", 1)),
-    gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.9))
+    gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.9)),
 )
 
 print(f"Loaded model: {MODEL_PATH}")
@@ -44,14 +44,18 @@ class NewPredictResponse(BaseModel):
 @app.post("/predict", response_model=NewPredictResponse)
 async def predict(request: PredictRequest):
     try:
+
         args = request.args
+        top_p = args.get("top_p")
+        if top_p is None:
+            top_p = 1.0
         sampling_params = SamplingParams(
             n=1,
             best_of=1,
             temperature=args.get("temperature", 0.8),
             top_k=args.get("top_k", 5),
-            top_p=args.get("top_p", 1.0),
-            max_tokens=1,
+            top_p=top_p,
+            max_tokens=500,
             logprobs=args.get("top_k", 5),  # 返回top_k个logprobs
             skip_special_tokens=False
         )
@@ -115,6 +119,8 @@ async def predict(request: PredictRequest):
         )
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()  # 打印完整错误
         raise HTTPException(status_code=500, detail=str(e))
 
 

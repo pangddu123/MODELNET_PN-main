@@ -423,7 +423,7 @@ class SimpleMathTester(BaseTester):
     def evaluate(self, model_choice, args, max_samples=None):
         """在SimpleMath数据集上评估模型性能"""
         self._init_evaluation(model_choice)
-        data_file = os.path.join(self.dataset_path, "dev.jsonl")
+        data_file = os.path.join(self.dataset_path, "train.jsonl")
 
         if not os.path.exists(data_file):
             print(f"SimpleMath数据文件不存在: {data_file}")

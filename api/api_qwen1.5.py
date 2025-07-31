@@ -48,12 +48,15 @@ class NewPredictResponse(BaseModel):
 async def predict(request: PredictRequest):
     try:
         args = request.args
+        top_p = args.get("top_p")
+        if top_p is None:
+            top_p = 1.0
         sampling_params = SamplingParams(
             n=1,
             best_of=1,
             temperature=args.get("temperature", 0.8),
             top_k=args.get("top_k", 5),
-            top_p=args.get("top_p", 1.0),
+            top_p=top_p,
             max_tokens=1,
             logprobs=args.get("top_k", 5),
             skip_special_tokens=False

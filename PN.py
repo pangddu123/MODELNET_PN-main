@@ -256,7 +256,7 @@ if __name__ == '__main__':
     handler = MultiModelHandler()
 
     # 选数据库中第i号模型
-    model_choice = [3]
+    model_choice = [0,4]
 
     question = "你知道智谱团队吗？"
     args = {
