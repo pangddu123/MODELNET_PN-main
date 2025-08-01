@@ -75,7 +75,7 @@ class MACSManager:
 
         # 计算最终贡献度 (加权组合)
         alpha = 0.5  # logit分量的权重
-        beta = 0.5  # rank分量的权重
+        beta = 1-alpha  # rank分量的权重
         c_total = alpha * c_logit + beta * c_rank
 
         # 将分数添加到模型数据中

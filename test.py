@@ -13,7 +13,7 @@ import gc
 class BaseTester:
     """测试类的基类，封装公共功能"""
 
-    def __init__(self, handler, dataset_path, results_dir):
+    def __init__(self, handler, dataset_path, results_dir,run_id=""):
         self.handler = handler
         self.dataset_path = dataset_path
         self.results_dir = results_dir
@@ -21,6 +21,15 @@ class BaseTester:
         self.accuracy_history = []
         self.timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         self.result_dir = os.path.join(self.results_dir, f"{self.timestamp}")
+        # os.makedirs(self.result_dir, exist_ok=True)
+
+        # 添加 run_id 作为目录名的一部分
+        if run_id:
+            self.result_dir = os.path.join(self.results_dir, f"{self.timestamp}_{run_id}")
+        else:
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            self.result_dir = os.path.join(self.results_dir, f"{timestamp}")
+
         os.makedirs(self.result_dir, exist_ok=True)
 
     def _init_evaluation(self, model_choice):
@@ -202,8 +211,8 @@ class CEvalTester(BaseTester):
     """管理CEval测试过程"""
 
     def __init__(self, handler, ceval_val_path="./dataset/ceval-exam/val",
-                 ceval_results_dir="./out/ceval_results"):
-        super().__init__(handler, ceval_val_path, ceval_results_dir)
+                 ceval_results_dir="./out/ceval_results", run_id=""):
+        super().__init__(handler, ceval_val_path, ceval_results_dir, run_id="")
         self.ceval_val_path = ceval_val_path
 
     def format_ceval_question(self, item, subject):
@@ -287,8 +296,8 @@ class BoolQTester(BaseTester):
     """管理BoolQ测试过程"""
 
     def __init__(self, handler, boolq_path="./dataset/BoolQ",
-                 boolq_results_dir="./out/boolq_results"):
-        super().__init__(handler, boolq_path, boolq_results_dir)
+                 boolq_results_dir="./out/boolq_results", run_id=""):
+        super().__init__(handler, boolq_path, boolq_results_dir, run_id="")
         self.boolq_path = boolq_path
 
     def format_boolq_question(self, item, subject):
@@ -382,8 +391,8 @@ class SimpleMathTester(BaseTester):
     """管理SimpleMath测试过程"""
 
     def __init__(self, handler, simplemath_path="./dataset/grade_school_math",
-                 simplemath_results_dir="./out/simplemath_results"):
-        super().__init__(handler, simplemath_path, simplemath_results_dir)
+                 simplemath_results_dir="./out/simplemath_results", run_id=""):
+        super().__init__(handler, simplemath_path, simplemath_results_dir, run_id="")
         self.simplemath_path = simplemath_path
 
     def format_simplemath_question(self, item, subject):

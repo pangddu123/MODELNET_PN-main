@@ -42,13 +42,14 @@ class MultiModelHandler:
         self.max_meaningless_tokens = 10  # 最大无意义token数量
 
 
-        # 初始化测试器
-        self.ceval_tester = CEvalTester(self)
-        self.boolq_tester = BoolQTester(self)
-        self.mmlu_tester = CEvalTester(self,ceval_val_path="./dataset/MMLU_ceval/data/val",
-                 ceval_results_dir="./out/mmlu_results")
-        self.simpleMath_tester = SimpleMathTester(self)
-
+        # # 初始化测试器
+        # self.ceval_tester = CEvalTester(self, run_id="")
+        # self.boolq_tester = BoolQTester(self, run_id="")
+        # self.mmlu_tester = CEvalTester(self,ceval_val_path="./dataset/MMLU_ceval/data/val",
+        #          ceval_results_dir="./out/mmlu_results", run_id="")
+        # self.simpleMath_tester = SimpleMathTester(self, run_id="")
+        # 添加用于存储当前运行ID的变量
+        self.current_run_id = ""
     def generate_response(self, model_choice, question, args, problem_id=None, subject=None):
 
 
@@ -284,20 +285,42 @@ class MultiModelHandler:
         return random.choice(highest), max_score
 
 
-    def evaluate_ceval(self, model_choice, args, subjects=None, max_samples=None):
+    def evaluate_ceval(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
         """委托给CEvalTester执行评估"""
-        return self.ceval_tester.evaluate(model_choice, args, subjects, max_samples)
+        tester = CEvalTester(
+            self,
+            ceval_val_path="./dataset/ceval-exam/val",
+            ceval_results_dir="./out/ceval_results",
+            run_id=run_id
+        )
+        return tester.evaluate(model_choice, args, subjects, max_samples)
 
-    def evaluate_mmlu(self, model_choice, args, subjects=None, max_samples=None):
+    def evaluate_mmlu(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
         """委托给CEvalTester执行评估"""
-        return self.mmlu_tester.evaluate(model_choice, args, subjects, max_samples)
-
-    def evaluate_boolq(self, model_choice, args, max_samples=1000):
-        """委托给CEvalTester执行评估"""
-        return self.boolq_tester.evaluate(model_choice, args, max_samples)
-    def evaluate_simpleMath(self, model_choice, args, max_samples=1000):
-        """委托给CEvalTester执行评估"""
-        return self.simpleMath_tester.evaluate(model_choice, args, max_samples)
+        tester = CEvalTester(
+            self,
+            ceval_val_path="./dataset/MMLU_ceval/data/val",
+            ceval_results_dir="./out/mmlu_results",
+            run_id=run_id
+        )
+        return tester.evaluate(model_choice, args, subjects, max_samples)
+    def evaluate_boolq(self, model_choice, args, max_samples=1000, run_id=""):
+        """创建新的BoolQ测试器实例进行评估"""
+        tester = BoolQTester(
+            self,
+            boolq_path="./dataset/BoolQ",
+            boolq_results_dir="./out/boolq_results",
+            run_id=run_id
+        )
+        return tester.evaluate(model_choice, args, max_samples)
+    def evaluate_simpleMath(self, model_choice, args, max_samples=1000, run_id=""):
+        tester = SimpleMathTester(
+            self,
+            simplemath_path="./dataset/grade_school_math",
+            simplemath_results_dir="./out/simplemath_results",
+            run_id=run_id
+        )
+        return tester.evaluate(model_choice, args, max_samples)
 
 if __name__ == '__main__':
     # url = 'http://127.0.0.1:8000/predict'
@@ -317,17 +340,21 @@ if __name__ == '__main__':
 
     handler = MultiModelHandler(
         enable_removal=False,
-        removal_threshold=0.3,  # MACS阈值
+        removal_threshold=0.4,  # MACS阈值
         window_size=5,  # 滑动窗口大小
-        consecutive_windows=3,  # 连续低于阈值的窗口数
+        consecutive_windows=2,  # 连续低于阈值的窗口数
         max_removals=3  # 最多剔除模型的个数
     )
 #6、8、
     # 模型组合列表
     # model_choice_list = [ [2, 3], [2, 6], [2, 8], [3, 6]]
-    model_choice_list = [ [0,1]]
+    model_choice_list = [ [0,1,2,3]]
     # model_choice_list = [ [2, 6, 8], [3, 6, 8], [2, 3, 6, 8]]
 
+    model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
+
+
+    model_choice_list =[    [1], [2], [3],     [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
 
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
@@ -340,10 +367,13 @@ if __name__ == '__main__':
         log_file.write(f"可读开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}\n")
         log_file.write(f"评估模型数量: {len(model_choice_list)}种组合\n\n")
 
-    number_problems = 100000000
-    number_subjects = 1
+    number_problems = 10
+    number_subjects = 20
 
     for model_index, model_choice in enumerate(model_choice_list):
+
+        run_id = f"combo_{model_index}_{'_'.join(map(str, model_choice))}"
+
         args = {
             'max_len': 500,
             'top_k': 5,
@@ -371,17 +401,17 @@ if __name__ == '__main__':
         ceval_folder_path = "./dataset/ceval-exam/val"  # 替换为实际路径
         ceval_subjects_to_evaluate = [f for f in os.listdir(ceval_folder_path)
                      if f.endswith(".csv") and os.path.isfile(os.path.join(ceval_folder_path, f))]
-        # ceval_subjects_to_evaluate = ceval_subjects_to_evaluate[:number_subjects]
+        ceval_subjects_to_evaluate = ceval_subjects_to_evaluate[:number_subjects]
 
         MMLU_folder_path = "./dataset/MMLU_ceval/data/val"  # 替换为实际路径
         MMLU_subjects_to_evaluate = [f for f in os.listdir(MMLU_folder_path)
                      if f.endswith(".csv") and os.path.isfile(os.path.join(MMLU_folder_path, f))]
-        # MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
+        MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
 
-        # overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems)
-        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems)
-        # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems)
-        overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems)
+        overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
+        overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
+        overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
+        # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems,run_id=run_id)
         # 记录当前模型组合耗时
         combo_elapsed = time.time() - combo_start_time
         print(f"[组合日志] 评估完成! 耗时: {combo_elapsed:.2f}秒")

@@ -9,7 +9,7 @@ from typing import List, Dict, Any
 
 # 指定使用GPU 1
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
-os.environ["CUDA_VISIBLE_DEVICES"] = "1"
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 app = FastAPI()
 # MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
 MODEL_PATH = "/root/autodl-tmp/LLM/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
@@ -19,7 +19,7 @@ MODEL_NAME = "DeepseekR1-7B"
 MODEL_ARCH = "transformers"
 EOS_TOKEN = "<｜end▁of▁sentence｜>"  # GLM-4的结束符
 TEMPLATE_TYPE = "deepseekr1"
-MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 600))
+MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 8192))
 
 # 初始化vLLM引擎
 llm = LLM(

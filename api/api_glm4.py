@@ -11,15 +11,15 @@ from typing import List, Dict, Any
 # os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 app = FastAPI()
-# MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
-MODEL_PATH = "/root/autodl-tmp/LLM/okwinds/GLM-4-9B-0414-Int8-W8A16"
+MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
+# MODEL_PATH = "/root/autodl-tmp/LLM/okwinds/GLM-4-9B-0414-Int8-W8A16"
 # 环境变量配置
-PORT = int(os.getenv("PORT", 8001))  # 使用不同端口避免冲突
+PORT = int(os.getenv("PORT", 8002))  # 使用不同端口避免冲突
 MODEL_NAME = "GLM-4"
 MODEL_ARCH = "transformers"
 EOS_TOKEN = "<|endoftext|>"  # GLM-4的结束符
 TEMPLATE_TYPE = "glm4"
-MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 600))
+MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 8192))
 
 # 初始化vLLM引擎
 llm = LLM(
@@ -54,13 +54,17 @@ class NewPredictResponse(BaseModel):
 async def predict(request: PredictRequest):
     try:
         args = request.args
+        top_p = args.get("top_p")
+        if top_p is None:
+            top_p = 1.0
         sampling_params = SamplingParams(
             n=1,
-            temperature=args.get("temperature", 0.7),
-            top_k=args.get("top_k", 10),
-            top_p=args.get("top_p", 0.95),
+            best_of=1,
+            temperature=args.get("temperature", 0.8),
+            top_k=args.get("top_k", 5),
+            top_p=top_p,
             max_tokens=1,
-            logprobs=args.get("top_k", 10),
+            logprobs=args.get("top_k", 5),
             skip_special_tokens=False
         )
 
