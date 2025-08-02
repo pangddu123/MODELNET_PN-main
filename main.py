@@ -21,7 +21,7 @@ class MultiModelHandler:
 
     def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=10,
                  enable_removal=False, removal_threshold=0.3, window_size=5,
-                 consecutive_windows=3, max_removals=2):
+                 consecutive_windows=3, max_removals=2,use_relative_threshold=False,relative_threshold=0.65):
         self.file_path = "./model_info.json"
         self.save_dir = "./out/saved_logs"
         os.makedirs(self.save_dir, exist_ok=True)
@@ -33,8 +33,11 @@ class MultiModelHandler:
             removal_threshold=removal_threshold,
             window_size=window_size,
             consecutive_windows=consecutive_windows,
-            max_removals=max_removals
+            max_removals=max_removals,
+            use_relative_threshold = use_relative_threshold,
+            relative_threshold = relative_threshold
         )
+
 
         # 生成过程监控参数
         self.max_repetition_count = 5  # 最大允许重复次数
@@ -343,7 +346,9 @@ if __name__ == '__main__':
         removal_threshold=0.4,  # MACS阈值
         window_size=5,  # 滑动窗口大小
         consecutive_windows=2,  # 连续低于阈值的窗口数
-        max_removals=3  # 最多剔除模型的个数
+        max_removals=3,  # 最多剔除模型的个数
+        use_relative_threshold=False,
+        relative_threshold = 0.65
     )
 #6、8、
     # 模型组合列表
@@ -354,8 +359,8 @@ if __name__ == '__main__':
     model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
 
 
-    model_choice_list =[    [1], [2], [3],     [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
-
+    model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
+    # model_choice_list =[[3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
 

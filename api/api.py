@@ -5,7 +5,7 @@ import os
 import math
 import uvicorn
 from typing import List, Dict, Any, Optional
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 app = FastAPI()
 MODEL_PATH = "/root/autodl-tmp/LLM/qwen/Qwen2.5-7B-Instruct"  # HuggingFace模型ID
 
