@@ -7,7 +7,7 @@ import uvicorn
 from typing import Dict, Any
 
 app = FastAPI()
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 # 环境变量配置（建议通过.env文件或容器环境设置）
 MODEL_PATH = os.getenv("MODEL_PATH", "/root/autodl-tmp/LLM/qwen/Qwen1.5-7B-Chat")  # 修改为Qwen1.5模型路径
 PORT = int(os.getenv("PORT", 8001))

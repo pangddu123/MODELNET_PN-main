@@ -1,5 +1,7 @@
 import json
 import os
+import random
+import math
 from datetime import datetime
 
 import pandas as pd
@@ -10,7 +12,8 @@ class MACSManager:
 
     def __init__(self, enable_removal=False, removal_threshold=0.25,
                  window_size=8, consecutive_windows=2, max_removals=3,
-                 use_relative_threshold=True, relative_threshold=0.7):  # 新增参数
+                 use_relative_threshold=True, relative_threshold=0.7,
+                 random_removal_prob=0.0, random_removal_mode=False):  # 新增随机剔除参数
         """
         初始化MACS管理器
 
@@ -19,16 +22,20 @@ class MACSManager:
         :param window_size: 滑动窗口大小
         :param consecutive_windows: 连续触发窗口数
         :param max_removals: 最大剔除模型数
-        :param use_relative_threshold: 是否使用相对阈值 (新增)
-        :param relative_threshold: 相对阈值比例 (当use_relative_threshold=True时有效)
+        :param use_relative_threshold: 是否使用相对阈值
+        :param relative_threshold: 相对阈值比例
+        :param random_removal_prob: 随机剔除概率 (0.0-1.0)
+        :param random_removal_mode: 是否启用纯随机剔除模式 (禁用MACS剔除)
         """
         self.enable_removal = enable_removal
         self.removal_threshold = removal_threshold
         self.window_size = window_size
         self.consecutive_windows = consecutive_windows
         self.max_removals = max_removals
-        self.use_relative_threshold = use_relative_threshold  # 控制是否使用相对阈值
-        self.relative_threshold = relative_threshold  # 相对阈值比例
+        self.use_relative_threshold = use_relative_threshold
+        self.relative_threshold = relative_threshold
+        self.random_removal_prob = random_removal_prob  # 随机剔除概率
+        self.random_removal_mode = random_removal_mode  # 纯随机剔除模式
 
         # 状态跟踪
         self.removal_events = []
@@ -112,6 +119,12 @@ class MACSManager:
             return None
 
         models_to_remove = []
+
+        # 纯随机剔除模式
+        if self.random_removal_mode:
+            return self.perform_random_removal(problem_id, subject)
+
+        # MACS剔除模式 (可能包含随机剔除)
         best_model_score = -1
 
         # 首先计算本轮最佳模型分数（仅当使用相对阈值时）
@@ -149,6 +162,10 @@ class MACSManager:
 
                 # 决定是否剔除
                 if absolute_low and (not self.use_relative_threshold or relative_low):
+                    # 随机剔除检查：有一定概率跳过MACS剔除
+                    if self.random_removal_prob > 0 and random.random() > self.random_removal_prob:
+                        continue
+
                     models_to_remove.append(model_name)
                     self.model_macs_history[model_name]['removed'] = True
                     self.removal_count += 1
@@ -161,6 +178,12 @@ class MACSManager:
                           f"窗口平均分: {avg_score:.3f} < 阈值: {threshold_info} "
                           f"(条件: {reason})")
 
+        # 随机剔除（在MACS模式中作为补充）
+        if self.random_removal_prob > 0 and not self.random_removal_mode:
+            random_removals = self.perform_random_removal(problem_id, subject)
+            if random_removals:
+                models_to_remove.extend([r['model_name'] for r in random_removals])
+
         removal_events = []
         for model_name in models_to_remove:
             event = {
@@ -168,12 +191,65 @@ class MACSManager:
                 "subject": subject,
                 "problem_id": problem_id,
                 "model_name": model_name,
-                "window_scores": self.model_macs_history[model_name]['scores'][-self.consecutive_windows:],
+                "window_scores": self.model_macs_history[model_name]['scores'][
+                                 -self.consecutive_windows:] if not self.random_removal_mode else [],
                 "threshold": self.removal_threshold,
                 "relative_threshold_used": self.use_relative_threshold,
                 "relative_threshold_value": self.relative_threshold if self.use_relative_threshold else None,
                 "best_model_score": best_model_score if self.use_relative_threshold else None,
-                "remaining_models": [m for m in self.current_models if m != model_name]
+                "remaining_models": [m for m in self.current_models if m != model_name],
+                "removal_type": "random" if self.random_removal_mode or (
+                            self.random_removal_prob > 0 and model_name in [r['model_name'] for r in
+                                                                            removal_events]) else "MACS"
+            }
+            self.removal_events.append(event)
+            removal_events.append(event)
+
+        return removal_events
+
+    def perform_random_removal(self, problem_id, subject):
+        """执行随机剔除"""
+        models_to_remove = []
+        removal_events = []
+
+        # 获取尚未被剔除的模型
+        available_models = [model for model in self.current_models
+                            if not self.model_macs_history[model]['removed']]
+
+        if not available_models:
+            return removal_events
+
+        # 计算实际剔除概率，考虑最大剔除数量限制
+        effective_prob = min(self.random_removal_prob,
+                             (self.max_removals - self.removal_count) / len(available_models))
+
+        for model_name in available_models:
+            # 检查是否达到最大剔除数量
+            if self.removal_count >= self.max_removals:
+                break
+
+            # 根据概率决定是否剔除
+            if random.random() < effective_prob:
+                self.model_macs_history[model_name]['removed'] = True
+                self.removal_count += 1
+                models_to_remove.append(model_name)
+
+                print(f"🎲 模型 {model_name} 被随机剔除 | "
+                      f"概率: {effective_prob:.2f}")
+
+        for model_name in models_to_remove:
+            event = {
+                "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "subject": subject,
+                "problem_id": problem_id,
+                "model_name": model_name,
+                "window_scores": [],
+                "threshold": self.random_removal_prob,
+                "relative_threshold_used": False,
+                "relative_threshold_value": None,
+                "best_model_score": None,
+                "remaining_models": [m for m in self.current_models if m != model_name],
+                "removal_type": "random"
             }
             self.removal_events.append(event)
             removal_events.append(event)
@@ -208,7 +284,8 @@ class MACSManager:
                             "scores": json.dumps(model_info.get('scores', [])),
                             "is_correct": row['is_correct'],
                             "accuracy_so_far": row['accuracy_so_far'],
-                            "removal_occurred": row['removal_occurred']
+                            "removal_occurred": row['removal_occurred'],
+                            "removal_type": row.get('removal_type', 'none')
                         })
                 elif isinstance(models, dict):
                     for model_name, model_info in models.items():
@@ -220,7 +297,8 @@ class MACSManager:
                             "scores": json.dumps(model_info.get('scores', [])),
                             "is_correct": row['is_correct'],
                             "accuracy_so_far": row['accuracy_so_far'],
-                            "removal_occurred": row['removal_occurred']
+                            "removal_occurred": row['removal_occurred'],
+                            "removal_type": row.get('removal_type', 'none')
                         })
                 else:
                     print(f"⚠️ 未知的models类型: {type(models)}")

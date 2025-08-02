@@ -21,7 +21,8 @@ class MultiModelHandler:
 
     def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=10,
                  enable_removal=False, removal_threshold=0.3, window_size=5,
-                 consecutive_windows=3, max_removals=2,use_relative_threshold=False,relative_threshold=0.65):
+                 consecutive_windows=3, max_removals=2,use_relative_threshold=False,relative_threshold=0.65,
+                 random_removal_prob=0.0, random_removal_mode=False):
         self.file_path = "./model_info.json"
         self.save_dir = "./out/saved_logs"
         os.makedirs(self.save_dir, exist_ok=True)
@@ -35,7 +36,9 @@ class MultiModelHandler:
             consecutive_windows=consecutive_windows,
             max_removals=max_removals,
             use_relative_threshold = use_relative_threshold,
-            relative_threshold = relative_threshold
+            relative_threshold = relative_threshold,
+            random_removal_prob=random_removal_prob,
+            random_removal_mode=random_removal_mode
         )
 
 
@@ -348,7 +351,9 @@ if __name__ == '__main__':
         consecutive_windows=2,  # 连续低于阈值的窗口数
         max_removals=3,  # 最多剔除模型的个数
         use_relative_threshold=False,
-        relative_threshold = 0.65
+        relative_threshold = 0.65,
+        random_removal_prob=0.0,
+        random_removal_mode=False
     )
 #6、8、
     # 模型组合列表
@@ -356,10 +361,10 @@ if __name__ == '__main__':
     model_choice_list = [ [0,1,2,3]]
     # model_choice_list = [ [2, 6, 8], [3, 6, 8], [2, 3, 6, 8]]
 
-    model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
+    # model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
 
 
-    model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
+    # model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
     # model_choice_list =[[3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
@@ -372,7 +377,7 @@ if __name__ == '__main__':
         log_file.write(f"可读开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}\n")
         log_file.write(f"评估模型数量: {len(model_choice_list)}种组合\n\n")
 
-    number_problems = 10
+    number_problems = 20
     number_subjects = 20
 
     for model_index, model_choice in enumerate(model_choice_list):

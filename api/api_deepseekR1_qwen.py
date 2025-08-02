@@ -8,7 +8,7 @@ import torch
 from typing import List, Dict, Any
 
 # 指定使用GPU 1
-os.environ["CUDA_VISIBLE_DEVICES"] = "0"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 app = FastAPI()
 # MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
