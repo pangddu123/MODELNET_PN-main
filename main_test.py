@@ -301,17 +301,6 @@ class MultiModelHandler:
         )
         return tester.evaluate(model_choice, args, subjects, max_samples)
 
-    def evaluate_ceval_test(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
-        """委托给CEvalTester执行评估"""
-        tester = CEvalTester(
-            self,
-            ceval_val_path="./dataset/ceval-exam/test",
-            ceval_results_dir="./out/ceval_test_results",
-            run_id=run_id
-        )
-        return tester.predict_test_set(model_choice, args, subjects, max_samples)
-
-
     def evaluate_mmlu(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
         """委托给CEvalTester执行评估"""
         tester = CEvalTester(
@@ -343,13 +332,13 @@ if __name__ == '__main__':
 
 
     handler = MultiModelHandler(
-        enable_removal=False,
-        removal_threshold=0.6,  # MACS阈值
-        window_size=5,  # 滑动窗口大小
+        enable_removal=True,
+        removal_threshold=0.3,  # MACS阈值
+        window_size=3,  # 滑动窗口大小
         consecutive_windows=2,  # 连续低于阈值的窗口数
         max_removals=3,  # 最多剔除模型的个数
-        use_relative_threshold=False,
-        relative_threshold = 0.65,
+        use_relative_threshold=True,
+        relative_threshold = 0.6,
         random_removal_prob=0.0,
         random_removal_mode=False
     )
@@ -362,8 +351,8 @@ if __name__ == '__main__':
     # model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
 
 
-    model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
-    # model_choice_list =[[3]]
+    # model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
+    model_choice_list =[[0,1,2,3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
 
@@ -375,7 +364,7 @@ if __name__ == '__main__':
     #     log_file.write(f"可读开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}\n")
     #     log_file.write(f"评估模型数量: {len(model_choice_list)}种组合\n\n")
 
-    number_problems = 200000000000
+    number_problems = 20
     number_subjects = 5
 
     for model_index, model_choice in enumerate(model_choice_list):
@@ -417,8 +406,8 @@ if __name__ == '__main__':
         # MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
 
         # overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
-        overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
-        # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
+        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
+        overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
         # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems,run_id=run_id)
         # 记录当前模型组合耗时
         combo_elapsed = time.time() - combo_start_time

@@ -291,7 +291,104 @@ class CEvalTester(BaseTester):
 
         return self._save_final_results()
 
+    def predict_test_set(self, model_choice, args, subjects=None, max_samples=None):
+        """
+        在CEval测试集上生成预测结果
+        返回格式: {学科: {问题ID: 预测答案, ...}, ...}
+        """
+        self._init_evaluation(model_choice)
+        submission_results = {}
+        detailed_results = {}
 
+        if subjects is None:
+            subjects = [d for d in os.listdir(self.dataset_path)
+                        if os.path.isdir(os.path.join(self.dataset_path, d))]
+
+        for subject in tqdm(subjects, desc="Subjects"):
+            csv_path = os.path.join(self.dataset_path, subject)
+            if not os.path.exists(csv_path):
+                print(f"跳过 {subject} - CSV文件不存在: {csv_path}")
+                continue
+
+            data = []
+            with open(csv_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    if all(field in row for field in ['id', 'question', 'A', 'B', 'C', 'D']):
+                        data.append(row)
+
+            if not data:
+                print(f"跳过 {subject} - CSV文件中无有效数据")
+                continue
+
+            if max_samples and max_samples < len(data):
+                data = data[:max_samples]
+
+            subject_name = subject.replace(".csv", "")
+            submission_results[subject_name] = {}
+            detailed_results[subject_name] = {}
+
+            for item in tqdm(data, desc=f"处理 {subject}", leave=False):
+                if not self.active_model_choice:
+                    print("所有模型已被剔除，终止预测")
+                    break
+
+                # 格式化问题
+                question = self.format_ceval_question(item, subject)
+
+                # 生成答案
+                generated_answer, _, current_problem_macs = self.handler.generate_response(
+                    self.active_model_choice, question, args,
+                    problem_id=item["id"], subject=subject
+                )
+
+                # 内存清理
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+                    torch.cuda.ipc_collect()
+                gc.collect()
+
+                # 检查并处理模型剔除
+                removal_events = []
+                if hasattr(self.handler, 'macs_manager') and self.handler.macs_manager.enable_removal:
+                    removal_events = self.handler.macs_manager.check_removal_condition(
+                        current_problem_macs, problem_id=item["id"], subject=subject
+                    )
+                self._handle_model_removal(removal_events)
+
+                # 提取预测答案
+                predicted_answer = extract_option(generated_answer)
+
+                # 记录结果
+                problem_id = item["id"]
+                submission_results[subject_name][problem_id] = predicted_answer
+
+                detailed_results[subject_name][problem_id] = {
+                    "question": item["question"],
+                    "options": {"A": item["A"], "B": item["B"], "C": item["C"], "D": item["D"]},
+                    "generated_text": generated_answer,
+                    "predicted_answer": predicted_answer,
+                    "models_used": [self.models_data[idx]["model_name"] for idx in self.active_model_choice],
+                    "removal_occurred": bool(removal_events)
+                }
+
+                if removal_events:
+                    detailed_results[subject_name][problem_id]["removal_events"] = removal_events
+
+        # 保存结果
+        submission_file = os.path.join(self.result_dir, "ceval_submission.json")
+        with open(submission_file, 'w', encoding='utf-8') as f:
+            json.dump(submission_results, f, indent=2, ensure_ascii=False)
+
+        detailed_file = os.path.join(self.result_dir, "detailed_predictions.json")
+        with open(detailed_file, 'w', encoding='utf-8') as f:
+            json.dump(detailed_results, f, indent=4, ensure_ascii=False)
+
+        print(f"预测完成! 结果已保存至: {self.result_dir}")
+        print(f"提交文件: {submission_file}")
+        print(f"详细结果: {detailed_file}")
+
+        return submission_results
 class BoolQTester(BaseTester):
     """管理BoolQ测试过程"""
 
