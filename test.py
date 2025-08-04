@@ -298,12 +298,25 @@ class CEvalTester(BaseTester):
         """
         self._init_evaluation(model_choice)
         submission_results = {}
-        detailed_results = {}
+
+        # 确保结果目录存在
+        os.makedirs(self.result_dir, exist_ok=True)
+
+        # 准备流式写入的JSON文件
+        submission_file = os.path.join(self.result_dir, "ceval_submission.json")
+        detailed_file = os.path.join(self.result_dir, "detailed_predictions.json")
+
+        # 初始化流式JSON文件
+        with open(submission_file, 'w', encoding='utf-8') as f_sub:
+            f_sub.write('{')
+        with open(detailed_file, 'w', encoding='utf-8') as f_det:
+            f_det.write('{')
 
         if subjects is None:
             subjects = [d for d in os.listdir(self.dataset_path)
                         if os.path.isdir(os.path.join(self.dataset_path, d))]
 
+        first_subject = True
         for subject in tqdm(subjects, desc="Subjects"):
             csv_path = os.path.join(self.dataset_path, subject)
             if not os.path.exists(csv_path):
@@ -326,7 +339,10 @@ class CEvalTester(BaseTester):
 
             subject_name = subject.replace(".csv", "")
             submission_results[subject_name] = {}
-            detailed_results[subject_name] = {}
+            subject_detailed = {}
+
+            subject_submission = {}
+            subject_detailed = {}
 
             for item in tqdm(data, desc=f"处理 {subject}", leave=False):
                 if not self.active_model_choice:
@@ -361,9 +377,9 @@ class CEvalTester(BaseTester):
 
                 # 记录结果
                 problem_id = item["id"]
-                submission_results[subject_name][problem_id] = predicted_answer
+                subject_submission[problem_id] = predicted_answer
 
-                detailed_results[subject_name][problem_id] = {
+                detailed_entry = {
                     "question": item["question"],
                     "options": {"A": item["A"], "B": item["B"], "C": item["C"], "D": item["D"]},
                     "generated_text": generated_answer,
@@ -373,16 +389,45 @@ class CEvalTester(BaseTester):
                 }
 
                 if removal_events:
-                    detailed_results[subject_name][problem_id]["removal_events"] = removal_events
+                    detailed_entry["removal_events"] = removal_events
 
-        # 保存结果
-        submission_file = os.path.join(self.result_dir, "ceval_submission.json")
-        with open(submission_file, 'w', encoding='utf-8') as f:
-            json.dump(submission_results, f, indent=2, ensure_ascii=False)
+                subject_detailed[problem_id] = detailed_entry
 
-        detailed_file = os.path.join(self.result_dir, "detailed_predictions.json")
-        with open(detailed_file, 'w', encoding='utf-8') as f:
-            json.dump(detailed_results, f, indent=4, ensure_ascii=False)
+            # ========== 关键改进：流式写入学科结果 ==========
+            # 1. 写入提交文件
+            with open(submission_file, 'a', encoding='utf-8') as f_sub:
+                if not first_subject:
+                    f_sub.write(',')
+                else:
+                    first_subject = False
+
+                subject_data = json.dumps({subject_name: subject_submission}, ensure_ascii=False)[1:-1]
+                f_sub.write(subject_data)
+
+            # 2. 写入详细结果
+            with open(detailed_file, 'a', encoding='utf-8') as f_det:
+                if not first_subject:  # 使用相同的first_subject标志
+                    f_det.write(',')
+
+                subject_detailed_data = json.dumps({subject_name: subject_detailed}, ensure_ascii=False, indent=4)
+                # 调整缩进格式
+                subject_detailed_data = subject_detailed_data[1:-1].replace('\n', '\n    ')
+                f_det.write(
+                    f'\n    "{subject_name}": {{\n{subject_detailed_data[subject_detailed_data.find("{") + 1:]}')
+
+            # 3. 添加到内存结果（用于返回）
+            submission_results[subject_name] = subject_submission
+
+            # 4. 及时清理临时数据释放内存
+            del subject_submission, subject_detailed, data
+            gc.collect()
+
+        # ========== 完成流式写入 ==========
+        with open(submission_file, 'a', encoding='utf-8') as f_sub:
+            f_sub.write('}')
+
+        with open(detailed_file, 'a', encoding='utf-8') as f_det:
+            f_det.write('\n}')
 
         print(f"预测完成! 结果已保存至: {self.result_dir}")
         print(f"提交文件: {submission_file}")

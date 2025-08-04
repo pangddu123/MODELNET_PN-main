@@ -362,8 +362,9 @@ if __name__ == '__main__':
     # model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
 
 
-    model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
-    # model_choice_list =[[3]]
+    # model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
+    # model_choice_list =[  [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
+    model_choice_list =[[0,1,2,3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
 
@@ -411,13 +412,21 @@ if __name__ == '__main__':
                      if f.endswith(".csv") and os.path.isfile(os.path.join(ceval_folder_path, f))]
         # ceval_subjects_to_evaluate = ceval_subjects_to_evaluate[:number_subjects]
 
+        cevalTest_folder_path = "./dataset/ceval-exam/test"  # 替换为实际路径
+        cevalTest_subjects_to_evaluate = [f for f in os.listdir(cevalTest_folder_path)
+                     if f.endswith(".csv") and os.path.isfile(os.path.join(cevalTest_folder_path, f))]
+
+
         MMLU_folder_path = "./dataset/MMLU_ceval/data/test"  # 替换为实际路径
         MMLU_subjects_to_evaluate = [f for f in os.listdir(MMLU_folder_path)
                      if f.endswith(".csv") and os.path.isfile(os.path.join(MMLU_folder_path, f))]
         # MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
+        # overall_acc = handler.evaluate_ceval_test(model_choice, args, cevalTest_subjects_to_evaluate[:1],
+        #                                           max_samples=10)
 
         # overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
-        overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
+        overall_acc = handler.evaluate_ceval_test(model_choice, args,cevalTest_subjects_to_evaluate, max_samples=number_problems)
+        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate[23:], max_samples=number_problems,run_id=run_id)
         # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
         # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems,run_id=run_id)
         # 记录当前模型组合耗时
