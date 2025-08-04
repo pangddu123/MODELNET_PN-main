@@ -350,7 +350,7 @@ if __name__ == '__main__':
         random_removal_mode=False
     )
 
-    model_choice_list =[[0,1,2,3]]
+    model_choice_list =[[1,2,3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
 
