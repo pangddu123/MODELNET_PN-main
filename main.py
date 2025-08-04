@@ -412,7 +412,7 @@ if __name__ == '__main__':
 
         overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
         # overall_acc = handler.evaluate_ceval_test(model_choice, args,cevalTest_subjects_to_evaluate, max_samples=number_problems)
-        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate[23:], max_samples=number_problems,run_id=run_id)
-        # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
+        overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate[23:], max_samples=number_problems,run_id=run_id)
+        overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
         # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems,run_id=run_id)
 
