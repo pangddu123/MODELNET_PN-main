@@ -221,7 +221,7 @@ class CEvalTester(BaseTester):
         options = {"A": item["A"], "B": item["B"], "C": item["C"], "D": item["D"]}
         options_str = "\n".join([f"{key}. {value}" for key, value in options.items()])
         subject_name = subject[:-4]
-        return f"以下是一道{subject_name}的选择题，不输出其他任何内容，请直接输出答案选项（A、B、C或D）:\n\n{question}\n\n选项:\n{options_str}"
+        return f"以下是一道{subject_name}的选择题，你必须在回答的最后重申你的答案（A、B、C或D）:\n\n{question}\n\n选项:\n{options_str}"
 
     def evaluate(self, model_choice, args, subjects=None, max_samples=None):
         """在CEval验证集上评估模型性能"""
@@ -448,21 +448,35 @@ class BoolQTester(BaseTester):
         passage = item["passage"]
         question = item["question"]
 
-        input_str = f"根据以下文章回答问题：\n"
+        input_str = f"Answer the questions based on the following article.：\n"
         if title:
-            input_str += f"标题: {title}\n"
-        input_str += f"文章: {passage}\n\n"
-        input_str += f"问题: {question}\n"
-        input_str += "答案只能是 'true' 或 'false'。\n\n"
-        input_str += "答案: "
+            input_str += f"title: {title}\n"
+        input_str += f"passage: {passage}\n\n"
+        input_str += f"question: {question}\n"
+        input_str += ("If you think it is correct, answer (True), otherwise answer (False). "
+                      "You must reiterate your answer at the end of the question'。")
         return input_str
 
     def extract_bool_answer(self, text):
-        """从模型生成文本中提取布尔答案"""
-        text = text.lower().strip()
-        if "true" in text or "yes" in text or "correct" in text:
+        """从模型生成文本中提取布尔答案（优先匹配结尾声明）"""
+        # 优先检查最后2-3句话（模型应在此重申答案）
+        sentences = re.split(r'[.!?]', text.strip().lower())
+        last_sentences = sentences[-3:] if len(sentences) > 3 else sentences
+
+        # 在结尾部分匹配完整答案声明
+        for sent in reversed(last_sentences):  # 从最后一句往前检查
+            if "true" in sent:
+                return "true"
+            elif "false" in sent:
+                return "false"
+            elif re.search(r'\b(answer|final|conclusion)[: ]*(true|false)\b', sent):
+                return "true" if "true" in sent else "false"
+
+        # 兜底：全文匹配（保持原逻辑）
+        text_lower = text.lower()
+        if "true" in text_lower:
             return "true"
-        elif "false" in text or "no" in text or "incorrect" in text:
+        elif "false" in text_lower:
             return "false"
         else:
             match = re.search(r'\b(t|f|y|n)\b', text)
@@ -473,6 +487,8 @@ class BoolQTester(BaseTester):
                 elif letter in ['f', 'n']:
                     return "false"
             return None
+
+
 
     def evaluate(self, model_choice, args, max_samples=None):
         """在BoolQ数据集上评估模型性能"""

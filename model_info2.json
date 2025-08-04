@@ -5,7 +5,7 @@
         "model_name": "Qwen1.5-7B-Chat",
         "model_arch": "transformers",
         "model_url": "http://10.154.22.10:5050",
-        "EOS": "<|im_end|>",
+        "EOS": "",
         "model_type": "normal"
     },
     {
