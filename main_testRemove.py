@@ -11,7 +11,7 @@ import pandas as pd
 from tqdm import tqdm
 
 import utils
-from MACSManager import MACSManager
+from MACS_ori import MACSManager
 from test import CEvalTester, BoolQTester, SimpleMathTester
 
 # /mnt/Data/xao/modelnet/load_model/output
@@ -35,10 +35,6 @@ class MultiModelHandler:
             window_size=window_size,
             consecutive_windows=consecutive_windows,
             max_removals=max_removals,
-            use_relative_threshold = use_relative_threshold,
-            relative_threshold = relative_threshold,
-            random_removal_prob=random_removal_prob,
-            random_removal_mode=random_removal_mode
         )
 
 
@@ -301,6 +297,17 @@ class MultiModelHandler:
         )
         return tester.evaluate(model_choice, args, subjects, max_samples)
 
+    def evaluate_ceval_test(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
+        """委托给CEvalTester执行评估"""
+        tester = CEvalTester(
+            self,
+            ceval_val_path="./dataset/ceval-exam/test",
+            ceval_results_dir="./out/ceval_test_results",
+            run_id=run_id
+        )
+        return tester.predict_test_set(model_choice, args, subjects, max_samples)
+
+
     def evaluate_mmlu(self, model_choice, args, subjects=None, max_samples=None, run_id=""):
         """委托给CEvalTester执行评估"""
         tester = CEvalTester(
@@ -333,38 +340,23 @@ if __name__ == '__main__':
 
     handler = MultiModelHandler(
         enable_removal=True,
-        removal_threshold=0.3,  # MACS阈值
-        window_size=3,  # 滑动窗口大小
-        consecutive_windows=2,  # 连续低于阈值的窗口数
+        removal_threshold=0.5,  # MACS阈值
+        window_size=5,  # 滑动窗口大小
+        consecutive_windows=3,  # 连续低于阈值的窗口数
         max_removals=3,  # 最多剔除模型的个数
-        use_relative_threshold=True,
-        relative_threshold = 0.6,
+        use_relative_threshold=False,
+        relative_threshold = 0.65,
         random_removal_prob=0.0,
         random_removal_mode=False
     )
-#6、8、
-    # 模型组合列表
-    # model_choice_list = [ [2, 3], [2, 6], [2, 8], [3, 6]]
-    # model_choice_list = [ [0,1,2,3]]
-    # model_choice_list = [ [2, 6, 8], [3, 6, 8], [2, 3, 6, 8]]
 
-    # model_choice_list = [[0, 2], [1, 2], [2, 3],[0, 1, 2] ,[0, 2, 3], [1, 2, 3],[0,1,2,3]]
-
-
-    # model_choice_list =[ [0, 1], [0, 2], [0, 3], [1, 2], [1, 3], [2, 3],     [0, 1, 2], [0, 1, 3], [0, 2, 3], [1, 2, 3],     [0, 1, 2, 3]     ]
     model_choice_list =[[0,1,2,3]]
     total_start_time = time.time()
     print(f"[总体日志] 测试开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}")
 
-    # 记录日志到文件
-    log_filename = f"evaluation_log_{int(total_start_time)}.txt"
-    # with open(log_filename, "w") as log_file:
-    #     log_file.write(f"### 评估测试开始 ###\n")
-    #     log_file.write(f"开始时间戳: {total_start_time}\n")
-    #     log_file.write(f"可读开始时间: {time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_start_time))}\n")
-    #     log_file.write(f"评估模型数量: {len(model_choice_list)}种组合\n\n")
 
-    number_problems = 20
+
+    number_problems = 200000000000
     number_subjects = 5
 
     for model_index, model_choice in enumerate(model_choice_list):
@@ -389,48 +381,29 @@ if __name__ == '__main__':
             'mode': 0
         }
 
-        # 记录当前模型组合开始时间
-        combo_start_time = time.time()
-        combo_start_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(combo_start_time))
-        print(f"\n[组合日志] 模型组合 {model_index + 1}/{len(model_choice_list)} 开始评估 ({model_choice})")
-        print(f"[组合日志] 开始时间: {combo_start_str}")
+
 
         ceval_folder_path = "./dataset/ceval-exam/val"  # 替换为实际路径
         ceval_subjects_to_evaluate = [f for f in os.listdir(ceval_folder_path)
                      if f.endswith(".csv") and os.path.isfile(os.path.join(ceval_folder_path, f))]
         # ceval_subjects_to_evaluate = ceval_subjects_to_evaluate[:number_subjects]
 
+        cevalTest_folder_path = "./dataset/ceval-exam/test"  # 替换为实际路径
+        cevalTest_subjects_to_evaluate = [f for f in os.listdir(cevalTest_folder_path)
+                     if f.endswith(".csv") and os.path.isfile(os.path.join(cevalTest_folder_path, f))]
+
+
         MMLU_folder_path = "./dataset/MMLU_ceval/data/test"  # 替换为实际路径
         MMLU_subjects_to_evaluate = [f for f in os.listdir(MMLU_folder_path)
                      if f.endswith(".csv") and os.path.isfile(os.path.join(MMLU_folder_path, f))]
         # MMLU_subjects_to_evaluate = MMLU_subjects_to_evaluate[:number_subjects]
+        # overall_acc = handler.evaluate_ceval_test(model_choice, args, cevalTest_subjects_to_evaluate[:1],
+        #                                           max_samples=10)
 
-        # overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
-        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
-        overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
+        overall_acc = handler.evaluate_ceval(model_choice, args, ceval_subjects_to_evaluate, max_samples=number_problems,run_id=run_id)
+        # overall_acc = handler.evaluate_ceval_test(model_choice, args,cevalTest_subjects_to_evaluate, max_samples=number_problems)
+        # overall_acc = handler.evaluate_mmlu(model_choice, args, MMLU_subjects_to_evaluate[23:], max_samples=number_problems,run_id=run_id)
+        # overall_acc = handler.evaluate_boolq(model_choice, args, max_samples=number_problems*number_subjects,run_id=run_id)
         # overall_acc = handler.evaluate_simpleMath(model_choice, args, max_samples=number_problems,run_id=run_id)
-        # 记录当前模型组合耗时
-        combo_elapsed = time.time() - combo_start_time
-        print(f"[组合日志] 评估完成! 耗时: {combo_elapsed:.2f}秒")
 
-        # # 写入组合日志
-        # with open(log_filename, "a") as log_file:
-        #     log_file.write(f"--- 模型组合 {model_index + 1} ---\n")
-        #     log_file.write(f"组合配置: {model_choice}\n")
-        #     log_file.write(f"开始时间: {combo_start_str}\n")
-        #     log_file.write(f"评估耗时: {combo_elapsed:.2f}秒\n\n")
-    # 记录整体测试结束时间和耗时
-    total_end_time = time.time()
-    total_elapsed = total_end_time - total_start_time
-    time_str = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(total_end_time))
 
-    print(f"\n[总体日志] 测试结束时间: {time_str}")
-    print(f"[总体日志] 总耗时: {total_elapsed:.2f}秒")
-
-    # # 更新日志文件
-    # with open(log_filename, "a") as log_file:
-    #     log_file.write(f"### 评估测试结束 ###\n")
-    #     log_file.write(f"结束时间戳: {total_end_time}\n")
-    #     log_file.write(f"可读结束时间: {time_str}\n")
-    #     log_file.write(f"总评估耗时: {total_elapsed:.2f}秒\n")
-    #     log_file.write(f"平均每个模型组合耗时: {total_elapsed / len(model_choice_list):.2f}秒\n")
