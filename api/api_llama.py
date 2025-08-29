@@ -5,22 +5,24 @@ import os
 import math
 import uvicorn
 from typing import Dict, Any
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 app = FastAPI()
-MODEL_PATH = "/home/administrator/du/model/Qwen/Qwen3-8B"  # 修改为实际模型路径
+MODEL_PATH = "/home/administrator/du/model/LLM-Research/Meta-Llama-3___1-8B-Instruct"
 
 # 环境变量配置
-PORT = int(os.getenv("PORT", 8005))
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen3-8B-Instruct")
+PORT = int(os.getenv("PORT", 8003))
+MODEL_NAME = os.getenv("MODEL_NAME", "Llama-3-8B-Instruct")
 MODEL_ARCH = os.getenv("MODEL_ARCH", "transformers")
 EOS_TOKEN = os.getenv("EOS_TOKEN", "<|im_end|>")
-TEMPLATE_TYPE = os.getenv("TEMPLATE_TYPE", "qwen3")  # 使用新模板类型
-
+TEMPLATE_TYPE = os.getenv("TEMPLATE_TYPE", "llama")  # 使用新模板类型
+MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 8192))
 # 初始化vLLM引擎
 llm = LLM(
     model=MODEL_PATH,
     tokenizer=MODEL_PATH,
     tensor_parallel_size=int(os.getenv("TENSOR_PARALLEL", 1)),
+    max_model_len=MAX_MODEL_LEN,  # 限制最大序列长度
     gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.4))
 )
 
@@ -50,11 +52,12 @@ async def predict(request: PredictRequest):
             top_p = 1.0
         sampling_params = SamplingParams(
             n=1,
-            temperature=args.get("temperature", 0.7),
-            top_k=args.get("top_k", 10),
+            best_of=1,
+            temperature=args.get("temperature", 0.8),
+            top_k=args.get("top_k", 5),
             top_p=top_p,
-            max_tokens=1,
-            logprobs=args.get("top_k", 10),
+            max_tokens=500,
+            logprobs=args.get("top_k", 5),  # 返回top_k个logprobs
             skip_special_tokens=False
         )
 
@@ -120,33 +123,11 @@ async def template(request: TemplateRequest):
     try:
         question = request.question
 
-        # Qwen3专用模板
-        if TEMPLATE_TYPE == "qwen3":
-            formatted_text = (
-                "<|im_start|>system\n"
-                "You are a helpful assistant.<|im_end|>\n"
-                "<|im_start|>user\n"
-                f"{question}<|im_end|>\n"
-                "<|im_start|>assistant\n"
-            )
-        # 其他模板保持不变
-        elif TEMPLATE_TYPE == "llama":
-            formatted_text = f"[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n{question} [/INST]"
-        elif TEMPLATE_TYPE == "qwen":  # 兼容旧版Qwen
-            formatted_text = (
-                "<|im_start|>system\n"
-                "You are a helpful assistant.<|im_end|>\n"
-                "<|im_start|>user\n"
-                f"{question}<|im_end|>\n"
-                "<|im_start|>assistant\n"
-            )
-        elif TEMPLATE_TYPE == "zephyr":
-            formatted_text = f"<|user|>\n{question}</s>\n<|assistant|>"
-        elif TEMPLATE_TYPE == "mistral":
-            formatted_text = f"[INST] {question} [/INST]"
-        else:  # 默认无模板
-            formatted_text = question
-
+        # if TEMPLATE_TYPE == "llama":
+        #     formatted_text = f"[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n{question} [/INST]"
+        # else:  # 默认无模板
+        #     formatted_text = question
+        formatted_text = question
         return {"text": formatted_text}
 
     except Exception as e:

@@ -8,13 +8,13 @@ import torch
 from typing import List, Dict, Any
 
 # 指定使用GPU 1
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 # os.environ["CUDA_VISIBLE_DEVICES"] = "2"
 app = FastAPI()
 # MODEL_PATH = "/root/autodl-tmp/LLM/ZhipuAI/glm-4-9b-chat"  # 替换为实际的GLM-4模型路径
-MODEL_PATH = "/root/autodl-tmp/LLM/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
+MODEL_PATH = "/home/administrator/du/model/deepseek-ai/DeepSeek-R1-Distill-Qwen-7B"
 # 环境变量配置
-PORT = int(os.getenv("PORT", 8003))  # 使用不同端口避免冲突
+PORT = int(os.getenv("PORT", 8002))  # 使用不同端口避免冲突
 MODEL_NAME = "DeepseekR1-7B"
 MODEL_ARCH = "transformers"
 EOS_TOKEN = "<｜end▁of▁sentence｜>"  # GLM-4的结束符
@@ -27,7 +27,7 @@ llm = LLM(
     tokenizer=MODEL_PATH,
     tensor_parallel_size=1,  # 单GPU运行
     trust_remote_code=True,  # GLM需要此参数
-    gpu_memory_utilization=0.9,
+    gpu_memory_utilization=0.4,
     max_model_len=MAX_MODEL_LEN,  # 限制最大序列长度
     dtype="bfloat16" if torch.cuda.is_bf16_supported() else "float16"
 )

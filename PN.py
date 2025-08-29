@@ -5,11 +5,10 @@ import json
 import numpy as np
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import utils
-from openai import OpenAI
 import pdb
 
 class MultiModelHandler:
-    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=1):
+    def __init__(self, num_model=None, eos_tokens=None, ports=None, max_workers=10):
         """
         初始化多模型处理器。
 

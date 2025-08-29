@@ -5,23 +5,28 @@ import os
 import math
 import uvicorn
 from typing import List, Dict, Any, Optional
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+import torch
+
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 app = FastAPI()
-MODEL_PATH = "/root/autodl-tmp/LLM/qwen/Qwen2.5-7B-Instruct"  # HuggingFace模型ID
+MODEL_PATH = "/home/administrator/du/model/Shanghai_AI_Laboratory/internlm3-8b-instruct" # HuggingFace模型ID
 
 # 环境变量配置
-PORT = int(os.getenv("PORT", 8000))
-MODEL_NAME = os.getenv("MODEL_NAME", "Qwen2.5-7B-Instruct")
+PORT = int(os.getenv("PORT", 8004))
+MODEL_NAME = os.getenv("MODEL_NAME", "internlm3-8b-instruct")
 MODEL_ARCH = os.getenv("MODEL_ARCH", "transformers")
 EOS_TOKEN = os.getenv("EOS_TOKEN", "<|im_end|>")
 TEMPLATE_TYPE = os.getenv("TEMPLATE_TYPE", "qwen")
-
+MAX_MODEL_LEN = int(os.getenv("MAX_MODEL_LEN", 8192))
 # 初始化vLLM引擎
 llm = LLM(
     model=MODEL_PATH,
     tokenizer=MODEL_PATH,
     tensor_parallel_size=int(os.getenv("TENSOR_PARALLEL", 1)),
-    gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.9)),
+    trust_remote_code=True,
+    gpu_memory_utilization=float(os.getenv("GPU_MEM_UTIL", 0.5)),
+    max_model_len=MAX_MODEL_LEN,  # 限制最大序列长度
+    dtype="bfloat16" if torch.cuda.is_bf16_supported() else "float16"
 )
 
 print(f"Loaded model: {MODEL_PATH}")
@@ -129,6 +134,13 @@ async def template(request: TemplateRequest):
     try:
         question = request.question
         # 根据模型类型应用不同的模板
+        formatted_text = (
+            "<|im_start|>system\n"
+            "You are a helpful assistant.<|im_end|>\n"
+            "<|im_start|>user\n"
+            f"{question}<|im_end|>\n"
+            "<|im_start|>assistant\n"
+        )
         if TEMPLATE_TYPE == "llama-chat":
             formatted_text = f"[INST] <<SYS>>\nYou are a helpful assistant.\n<</SYS>>\n\n{question} [/INST]"
         elif TEMPLATE_TYPE == "qwen":

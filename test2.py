@@ -227,8 +227,8 @@ class CEvalTester(BaseTester):
         options = {"A": item["A"], "B": item["B"], "C": item["C"], "D": item["D"]}
         options_str = "\n".join([f"{key}. {value}" for key, value in options.items()])
         subject_name = subject[:-4]
-        # return f"以下是一道{subject_name}的选择题，不输出其他任何内容，请直接输出答案选项（A、B、C或D）:\n\n{question}\n\n选项:\n{options_str}"
-        return f"以下是一道{subject_name}的选择题，你必须在回答的最后重申你的答案（A、B、C或D）:\n\n问题:{question}\n\n选项:\n{options_str}"
+        return f"以下是一道{subject_name}的选择题，不输出其他任何内容，请直接输出答案选项（A、B、C或D）:\n\n{question}\n\n选项:\n{options_str}"
+        # return f"以下是一道{subject_name}的选择题，你必须在回答的最后重申你的答案（A、B、C或D）:\n\n问题:{question}\n\n选项:\n{options_str}"
 
     import re
 

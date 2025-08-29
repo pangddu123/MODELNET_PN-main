@@ -108,39 +108,6 @@ def validate_args(args):
 
 
 
-def extract_option(text):
-    """
-    使用正则表达式从生成的文本中提取选项（A、B、C或D）
-    """
-    # 将文本转换为大写以进行不区分大小写的匹配
-    text_upper = text.upper()
-
-    # 正则表达式模式列表（按优先级排序）
-    patterns = [
-        # 匹配括号中的选项，如 (A) 或 [B]
-        r'[\(\[](A|B|C|D)[\)\]]',
-
-        # 匹配冒号后的选项，如 "答案：A" 或 "正确答案: B"
-        r'(?:答案|正确答案|正确选项|选项|选择|答案选项)[：:]\s*(A|B|C|D)',
-
-        # 匹配"是"后的选项，如 "答案是A" 或 "正确答案是 B"
-        r'(?:答案|正确答案|正确选项|选项|选择|答案选项)是\s*(A|B|C|D)',
-
-        # 匹配单独的大写字母选项（确保前后没有其他字母）
-        r'\b(A|B|C|D)\b',
-
-        # 匹配任何位置的大写字母选项（最后的兜底选项）
-        r'(A|B|C|D)'
-    ]
-
-    # 按优先级尝试匹配模式
-    for pattern in patterns:
-        match = re.search(pattern, text_upper)
-        if match:
-            return match.group(1)
-
-    # 如果所有方法都失败，返回随机选项
-    return 'E'
 
 
 def save_subject_logs( subject, log_data_list, result_dir):

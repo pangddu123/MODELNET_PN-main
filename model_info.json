@@ -1,6 +1,5 @@
 [
     {
-        "id": "i9j0k1l2",
         "idx":0,
         "model_name": "Qwen2.5-7B-Instruct",
         "model_arch": "transformers",
@@ -9,30 +8,43 @@
         "model_type": "normal"
     },
       {
-
-        "id": "a1b2c3d4",
-        "idx": 1,
-        "model_name": "Qwen1.5-7B-Chat",
-        "model_arch": "transformers",
-        "model_url": "http://127.0.0.1:8001",
-        "EOS": "<|im_end|>",
-        "model_type": "normal"
-    },
-      {
-        "id": "i9j0k1l2",
-        "idx":2,
+        "idx":1,
         "model_name": "glm-4-9b-chat",
         "model_arch": "transformers",
-        "model_url": "http://127.0.0.1:8002",
+        "model_url": "http://127.0.0.1:8001",
         "EOS": "<|endoftext|>",
         "model_type": "normal"
     },
       {
-        "id": "o1p2q3r4",
+        "idx":2,
         "model_name": "DeepSeek-R1-Distill-Qwen-7B",
         "model_arch": "transformers",
-        "model_url": "http://127.0.0.1:8003",
+        "model_url": "http://127.0.0.1:8002",
         "EOS": "<｜end▁of▁sentence｜>",
         "model_type": "thinker"
-    }
+    },
+      {
+        "idx":3,
+        "model_name": "Meta-Llama-3.1-8B-Instruct",
+        "model_arch": "transformers",
+        "model_url": "http://127.0.0.1:8003",
+        "EOS": "<|eot_id|>",
+        "model_type": "normal"
+    },
+      {
+        "idx":4,
+        "model_name": "internlm3-8b-instruct",
+        "model_arch": "transformers",
+        "model_url": "http://127.0.0.1:8004",
+        "EOS": "<|im_end|>",
+        "model_type": "normal"
+        },
+      {
+          "idx": 5,
+          "model_name": "Qwen3-8B-Instruct",
+          "model_arch": "transformers",
+          "model_url": "http://127.0.0.1:8005",
+          "EOS": "<|im_end|>",
+          "model_type": "normal"
+      }
 ]
